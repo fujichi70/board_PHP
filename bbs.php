@@ -1,6 +1,6 @@
 <?php
 
-require_once '../function.php';
+require_once 'function.php';
 
 $errors = [];
 $lines = [];
@@ -13,33 +13,35 @@ $date = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST'){
 
-    // バリデーションチェック
-    // 入力チェック
-    if (isset($_POST['name']) === TRUE && isset($_POST['comment']) === TRUE) {
+    if (isset($_POST['submit'])) {
         $name = $_POST['name'];
         $comment = $_POST['comment'];
         $date = $_POST['date'];
-    } else {
-        $errors[] = 'どちらか未入力です';
-        return;
-    }
-    
-    if(mb_strlen($name, 'UTF-8') >= 20 ) {
-		$errors[] = '名前は20文字以内で入力してください。';
-		return;
-	} elseif(mb_strlen($comment, 'UTF-8') >= 100 ) {
-	    $errors[] = '一言は100文字以内で入力してください。';
-	    return;
-	}
-
-    $fp = fopen(FILE_PATH, 'a');
-    if ($fp !== FALSE) {
-        $log = $name . ':' . $comment . "\r" . $date . "\n";
-        $result = fwrite($fp, $log);
-        if ($result === FALSE) {
-            $errors[] = '書き込み失敗、もう一度お試しください:  ' . $filename;
+        // バリデーションチェック
+        // 入力チェック
+        if (empty($name) || empty($comment)) {
+            $errors[] = 'どちらか未入力です';
         }
-        fclose($fp);
+        
+        // 文字数チェック
+        if (mb_strlen($name, 'UTF-8') > 20 ) {
+    		$errors[] = '名前は20文字以内で入力してください。';
+    	} elseif (mb_strlen($comment, 'UTF-8') > 100 ) {
+    	    $errors[] = '一言は100文字以内で入力してください。';
+    	}
+    	
+    	if (empty($errors)) {
+        
+            $fp = fopen(FILE_PATH, 'a');
+            if ($fp !== FALSE) {
+                $log = $name . ':' . $comment . " " . $date . "\n";
+                $result = fwrite($fp, $log);
+                if ($result === FALSE) {
+                    $errors[] = '書き込み失敗、もう一度お試しください:  ' . $filename;
+                }
+                fclose($fp);
+            }
+    	}
     }
 }
 
@@ -60,6 +62,7 @@ if (is_readable(FILE_PATH) === TRUE) {
     }
 } else {
     $errors[] = 'ファイルがありません';
+    return;
 }
 ?>
 
@@ -96,23 +99,25 @@ if (is_readable(FILE_PATH) === TRUE) {
     <form action="" method="post">
         <div>
             <label for="name">お名前</label>
-            <input type="text" name="name" />
+            <input type="text" name="name" value="<?php if(!empty($_POST['name'])) { echo h($_POST['name']); } ?>" />
         </div>
         <div>
             <label for="comment">一言</label>
-            <input type="text" name="comment" />
+            <input type="text" name="comment" value="<?php if(!empty($_POST['comment'])) { echo h($_POST['comment']); } ?>" />
         </div>
         <input type="hidden" name="date" value="<?php echo date("Y-m-d H:i:s"); ?>" />
         <input type="submit" name="submit" value="書き込み" />
     </form>
 
-    <?php foreach ($errors as $error) { ?>
-        <p><?php print h($error); ?></p>
-    <?php } ?>
+    <?php if (isset($errors)) : ?>
+        <?php foreach ($errors as $error) : ?>
+            <p style="color:red;"><?php echo $error; ?></p>
+        <?php endforeach; ?>
+    <?php endif; ?>
     
     <p>書き込み一覧</p>
-    <?php foreach ($lines as $line) { ?>
-        <p><?php print h($line); ?></p>
-    <?php } ?>
+    <?php foreach ($lines as $line): ?>
+        <p><?php echo h($line); ?></p>
+    <?php endforeach; ?>
 </body>
 </html>
